@@ -13,20 +13,20 @@ const SubagentParams = Type.Object({
 });
 
 export default function registerSimpleSubagents(pi: ExtensionAPI): void {
-  // Child agents must not be able to launch further simple subagents.
+  // Child agents must not be able to launch further subagents.
   if (process.env[CHILD_ENV] === "1") return;
 
   pi.registerTool({
-    name: "simple_subagent",
-    label: "Simple Subagent",
+    name: "subagent",
+    label: "Subagent",
     description:
       "Run one fresh synchronous subagent with the same active tools as the current agent, except subagent-spawning tools.",
     promptSnippet: "Run a fresh isolated subagent for a single delegated task.",
     promptGuidelines: [
-      "Use simple_subagent when an isolated context would help with a focused subtask.",
-      "simple_subagent is always synchronous and fresh; it does not preserve conversation history.",
-      "simple_subagent children cannot launch nested subagents.",
-      "You may call simple_subagent multiple times in the same turn only for independent work; avoid parallel calls that may edit overlapping files.",
+      "Use subagent when an isolated context would help with a focused subtask.",
+      "subagent is always synchronous and fresh; it does not preserve conversation history.",
+      "subagent children cannot launch nested subagents.",
+      "You may call subagent multiple times in the same turn only for independent work; avoid parallel calls that may edit overlapping files.",
     ],
     parameters: SubagentParams,
 

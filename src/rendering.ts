@@ -24,7 +24,7 @@ function formatToolCall(call: SubagentToolCall): string {
 export function renderSimpleSubagentCall(args: { task?: string; cwd?: string }, theme: any): Text {
   const task = previewText(args.task ?? "", 80);
   const cwd = args.cwd ? theme.fg("dim", ` in ${args.cwd}`) : "";
-  return new Text(`${theme.fg("toolTitle", theme.bold("simple_subagent "))}${theme.fg("accent", task)}${cwd}`, 0, 0);
+  return new Text(`${theme.fg("toolTitle", theme.bold("subagent "))}${theme.fg("accent", task)}${cwd}`, 0, 0);
 }
 
 export function renderSimpleSubagentResult(

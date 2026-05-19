@@ -18,8 +18,8 @@ export async function runSimpleSubagent(
   ctx: any,
 ): Promise<AgentToolResult<SimpleSubagentDetails>> {
   const blockedTools = new Set([
-    "simple_subagent",
     "subagent",
+    "simple_subagent",
   ]);
 
   const inheritedTools = pi

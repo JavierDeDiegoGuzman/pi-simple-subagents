@@ -1,6 +1,6 @@
 # pi-simple-subagents
 
-Minimal Pi extension that registers a single `simple_subagent` tool.
+Minimal Pi extension that registers a single `subagent` tool.
 
 Entry point: `src/index.ts`.
 
@@ -29,12 +29,12 @@ Reload Pi after editing/installing:
 - inherits the current model and thinking level
 - inherits the current active tools, except subagent-spawning tools
 - records and renders the child agent's tool-call history
-- disables nested `simple_subagent` registration in child processes
+- disables nested `subagent` registration in child processes
 
 ## Tool schema
 
 ```ts
-simple_subagent({ task: string, cwd?: string })
+subagent({ task: string, cwd?: string })
 ```
 
 ## Development
