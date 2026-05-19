@@ -30,6 +30,7 @@ export async function runSimpleSubagent(
   const thinking = typeof pi.getThinkingLevel === "function" ? pi.getThinkingLevel() : undefined;
 
   const detailsBase = (): Omit<SimpleSubagentDetails, "exitCode" | "messages" | "toolCalls"> => ({
+    task: params.task,
     cwd,
     tools: inheritedTools,
     ...(model ? { model } : {}),

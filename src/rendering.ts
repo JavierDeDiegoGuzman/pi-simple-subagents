@@ -62,6 +62,7 @@ export function renderSimpleSubagentResult(
   if (details?.model) lines.push(theme.fg("dim", `model: ${details.model}`));
   if (details?.cwd) lines.push(theme.fg("dim", `cwd: ${details.cwd}`));
   if (details?.tools?.length) lines.push(theme.fg("dim", `tools: ${details.tools.join(", ")}`));
+  if (details?.task) lines.push("", theme.fg("muted", "input:"), details.task);
   if (details?.toolCalls?.length) {
     lines.push("", theme.fg("muted", "tool call history:"));
     for (const call of details.toolCalls) lines.push(theme.fg("dim", `→ ${formatToolCall(call)}`));

@@ -4,6 +4,7 @@ export interface SubagentToolCall {
 }
 
 export interface SimpleSubagentDetails {
+  task: string;
   exitCode: number;
   cwd: string;
   tools: string[];
