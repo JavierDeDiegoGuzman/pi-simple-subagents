@@ -1,0 +1,57 @@
+{
+  "name": "pi-simple-subagents",
+  "version": "0.1.0",
+  "description": "Minimal Pi extension for fresh synchronous subagents",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com:JavierDeDiegoGuzman/pi-simple-subagents.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JavierDeDiegoGuzman/pi-simple-subagents/issues"
+  },
+  "homepage": "https://github.com/JavierDeDiegoGuzman/pi-simple-subagents#readme",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "subagents"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-agent-core": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-agent-core": {
+      "optional": true
+    },
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    },
+    "@earendil-works/pi-tui": {
+      "optional": true
+    },
+    "typebox": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
+}
