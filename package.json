@@ -5,7 +5,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com:JavierDeDiegoGuzman/pi-simple-subagents.git"
+    "url": "git+ssh://git@github.com/JavierDeDiegoGuzman/pi-simple-subagents.git"
   },
   "bugs": {
     "url": "https://github.com/JavierDeDiegoGuzman/pi-simple-subagents/issues"
