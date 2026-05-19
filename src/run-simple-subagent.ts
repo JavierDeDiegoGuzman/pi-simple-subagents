@@ -1,6 +1,5 @@
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
-import * as path from "node:path";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { textFromMessage, toolCallsFromMessage } from "./json-output.js";
@@ -26,7 +25,7 @@ export async function runSimpleSubagent(
     .map((tool) => (typeof tool === "string" ? tool : tool.name))
     .filter((name): name is string => typeof name === "string" && name.length > 0 && !blockedTools.has(name));
 
-  const cwd = params.cwd ? path.resolve(ctx.cwd, params.cwd) : ctx.cwd;
+  const cwd = ctx.cwd;
   const model = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
   const thinking = typeof pi.getThinkingLevel === "function" ? pi.getThinkingLevel() : undefined;
 

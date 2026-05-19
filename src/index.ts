@@ -7,9 +7,6 @@ import type { SimpleSubagentDetails } from "./types.js";
 
 const SubagentParams = Type.Object({
   task: Type.String({ description: "Task to run in a fresh synchronous subagent." }),
-  cwd: Type.Optional(
-    Type.String({ description: "Working directory for the subagent. Defaults to the current cwd." }),
-  ),
 });
 
 export default function registerSimpleSubagents(pi: ExtensionAPI): void {

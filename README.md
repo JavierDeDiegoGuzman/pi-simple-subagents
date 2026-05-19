@@ -34,7 +34,7 @@ Reload Pi after editing/installing:
 ## Tool schema
 
 ```ts
-subagent({ task: string, cwd?: string })
+subagent({ task: string })
 ```
 
 ## Development

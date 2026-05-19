@@ -16,5 +16,4 @@ export interface SimpleSubagentDetails {
 
 export interface SimpleSubagentParams {
   task: string;
-  cwd?: string;
 }
