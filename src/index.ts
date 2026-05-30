@@ -9,9 +9,43 @@ const SubagentParams = Type.Object({
   task: Type.String({ description: "Task to run in a fresh synchronous subagent." }),
 });
 
+const SUBAGENT_FIRST_GUIDANCE = `
+Subagent-first workflow:
+- Prefer the subagent tool by default for separable work: code review, reference search, repo exploration, debugging, test investigation, and small atomic change plans.
+- Delegate independent subtasks to fresh subagents, then synthesize their findings before editing or answering.
+- When delegating, explicitly tell each subagent which skills it should load before starting, using exact skill names when known.
+- Keep direct work for tiny tasks, tightly coupled edits, or when subagent overhead would not help.
+- Do not ask subagents to edit overlapping files in parallel; keep implementation changes atomic and coordinated.
+`.trim();
+
 export default function registerSimpleSubagents(pi: ExtensionAPI): void {
   // Child agents must not be able to launch further subagents.
   if (process.env[CHILD_ENV] === "1") return;
+
+  let subagentFirstEnabled = true;
+
+  pi.on("before_agent_start", (event) => {
+    if (!subagentFirstEnabled) return;
+    return { systemPrompt: `${event.systemPrompt}\n\n${SUBAGENT_FIRST_GUIDANCE}` };
+  });
+
+  pi.registerCommand("subagents", {
+    description: "Show or toggle subagent-first workflow guidance (on/off/status).",
+    handler: async (args, ctx) => {
+      const action = args.trim().toLowerCase();
+      if (action === "off") subagentFirstEnabled = false;
+      else if (action === "on") subagentFirstEnabled = true;
+      else if (action && action !== "status") {
+        ctx.ui.notify("Usage: /subagents [on|off|status]", "warning");
+        return;
+      }
+
+      ctx.ui.notify(
+        `Subagent-first workflow is ${subagentFirstEnabled ? "on" : "off"}.`,
+        subagentFirstEnabled ? "info" : "warning",
+      );
+    },
+  });
 
   pi.registerTool({
     name: "subagent",
