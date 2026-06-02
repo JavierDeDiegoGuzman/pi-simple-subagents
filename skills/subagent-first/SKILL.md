@@ -12,7 +12,7 @@ When delegating, include enough startup guidance for the child agent to be effec
 Example:
 
 ```text
-Before starting, load and follow these skills if available:
+Before starting, load and follow these skills:
 - improve-codebase-architecture
 - subagent-first
 
@@ -20,3 +20,5 @@ Then investigate the architecture and report concrete refactoring opportunities.
 ```
 
 Prefer this explicit skill guidance for repo exploration, code review, debugging, test investigation, and change planning tasks where a specialized skill would materially improve the subagent's work.
+
+Subagents dont have acces to the subagent tool or skill.
