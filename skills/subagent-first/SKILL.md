@@ -13,8 +13,7 @@ Example:
 
 ```text
 Before starting, load and follow these skills:
-- improve-codebase-architecture
-- subagent-first
+{ skills }
 
 Then investigate the architecture and report concrete refactoring opportunities. Do not edit files.
 ```
