@@ -5,6 +5,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { textFromMessage, toolCallsFromMessage } from "./json-output.js";
 import { getPiInvocation } from "./pi-invocation.js";
 import { cleanupTempDir, makeTaskArg } from "./task-transport.js";
+import { activeToolNames, delegatedToolNames } from "./tool-selection.js";
 import type { SimpleSubagentDetails, SimpleSubagentParams, SubagentToolCall } from "./types.js";
 
 export const CHILD_ENV = "PI_SIMPLE_SUBAGENT_CHILD";
@@ -15,15 +16,10 @@ export async function runSimpleSubagent(
   signal: AbortSignal | undefined,
   onUpdate: ((result: AgentToolResult<SimpleSubagentDetails>) => void) | undefined,
   ctx: any,
+  options: { inheritedToolsOverride?: readonly string[] } = {},
 ): Promise<AgentToolResult<SimpleSubagentDetails>> {
-  const blockedTools = new Set([
-    "subagent",
-  ]);
-
-  const inheritedTools = pi
-    .getActiveTools()
-    .map((tool) => (typeof tool === "string" ? tool : tool.name))
-    .filter((name): name is string => typeof name === "string" && name.length > 0 && !blockedTools.has(name));
+  const sourceTools = options.inheritedToolsOverride ?? activeToolNames(pi.getActiveTools());
+  const inheritedTools = delegatedToolNames(sourceTools);
 
   const cwd = ctx.cwd;
   const model = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
