@@ -16,6 +16,7 @@ import type { SimpleSubagentDetails } from "./types.js";
 
 const SubagentParams = Type.Object({
   task: Type.String({ description: "Task to run in a fresh synchronous subagent." }),
+  model: Type.Optional(Type.String({ description: "Optional model override for the subagent, e.g. openai/gpt-5-mini." })),
 });
 
 export default function registerSimpleSubagents(pi: ExtensionAPI): void {
@@ -163,6 +164,7 @@ export default function registerSimpleSubagents(pi: ExtensionAPI): void {
             task: params.task,
             cwd: ctx.cwd,
             tools: [],
+            ...(params.model ? { model: params.model } : {}),
             exitCode: 1,
             messages: 0,
             toolCalls: [],

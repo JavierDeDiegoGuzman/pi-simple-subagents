@@ -22,7 +22,8 @@ export async function runSimpleSubagent(
   const inheritedTools = delegatedToolNames(sourceTools);
 
   const cwd = ctx.cwd;
-  const model = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
+  const inheritedModel = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
+  const model = params.model ?? inheritedModel;
   const thinking = typeof pi.getThinkingLevel === "function" ? pi.getThinkingLevel() : undefined;
 
   const detailsBase = (): Omit<SimpleSubagentDetails, "exitCode" | "messages" | "toolCalls"> => ({

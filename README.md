@@ -35,7 +35,8 @@ Reload Pi after editing/installing:
 - always synchronous
 - always fresh (`--no-session`)
 - runs from the same working directory as the parent agent
-- inherits the current model and thinking level
+- inherits the current model and thinking level by default
+- allows an optional per-subagent model override
 - inherits the current active tools, except subagent-spawning tools
 - `/subagents super` restricts the main agent to the `subagent` tool while delegated subagents inherit the previous active tools
 - records and renders the child agent's full input task
@@ -59,7 +60,7 @@ Reload Pi after editing/installing:
 ## Tool schema
 
 ```ts
-subagent({ task: string })
+subagent({ task: string, model?: string })
 ```
 
 ## Development

@@ -17,4 +17,5 @@ export interface SimpleSubagentDetails {
 
 export interface SimpleSubagentParams {
   task: string;
+  model?: string;
 }
