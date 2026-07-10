@@ -41,6 +41,8 @@ Reload Pi after editing/installing:
 - records and renders the child agent's full input task
 - records and renders the child agent's tool-call history
 - disables nested `subagent` registration in child processes
+- marks the bundled `subagent-first` skill as explicit-only, strips subagent-first prompt context while `/subagents off` is active, and blocks `/skill:subagent-first`
+- hard-blocks stale `subagent` tool calls while `/subagents off` is active, even if another prompt/tool refresh exposes the tool
 
 ## Commands
 
@@ -49,8 +51,8 @@ Reload Pi after editing/installing:
 /subagets [on|off|super|status]  # typo alias
 ```
 
-- `on`: enable subagent-first guidance without changing active tools.
-- `off`: disable subagent-first guidance and restore tools if leaving super mode.
+- `on`: enable subagent-first guidance and ensure the `subagent` tool is active.
+- `off`: disable subagent-first guidance, remove the `subagent` tool from active tools, and block `/skill:subagent-first`.
 - `super`: enable guidance, disable every main-agent tool except `subagent`, and let subagents use the tools that were active before entering super mode.
 - `status` or no argument: show the current mode.
 

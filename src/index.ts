@@ -1,29 +1,22 @@
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { BuildSystemPromptOptions, ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { stripSubagentContext } from "./prompt-sanitizer.js";
 import { renderSimpleSubagentCall, renderSimpleSubagentResult } from "./rendering.js";
 import { CHILD_ENV, runSimpleSubagent } from "./run-simple-subagent.js";
+import {
+  SUBAGENT_FIRST_GUIDANCE,
+  SUBAGENT_SKILL_NAME,
+  SUBAGENT_SUPER_GUIDANCE,
+  SUBAGENT_TOOL_PROMPT_GUIDELINES,
+  SUBAGENT_TOOL_PROMPT_SNIPPET,
+} from "./subagent-guidance.js";
 import { activeToolNames, delegatedToolNames, SUBAGENT_TOOL_NAME } from "./tool-selection.js";
 import type { SimpleSubagentDetails } from "./types.js";
 
 const SubagentParams = Type.Object({
   task: Type.String({ description: "Task to run in a fresh synchronous subagent." }),
 });
-
-const SUBAGENT_FIRST_GUIDANCE = `
-Subagent-first workflow:
-- Prefer the subagent tool by default for separable work: code review, reference search, repo exploration, debugging, test investigation, and small atomic change plans.
-- Delegate independent subtasks to fresh subagents, then synthesize their findings before editing or answering.
-- When delegating, explicitly tell each subagent which skills it should load before starting, using exact skill names when known.
-- Keep direct work for tiny tasks, tightly coupled edits, or when subagent overhead would not help.
-- Do not ask subagents to edit overlapping files in parallel; keep implementation changes atomic and coordinated.
-`.trim();
-
-const SUBAGENT_SUPER_GUIDANCE = `
-Subagent super mode:
-- The main agent is intentionally restricted to delegation. Use subagent for implementation, investigation, debugging, tests, and edits.
-- Synthesize subagent results and communicate with the user, but do not attempt direct tool work in the main agent.
-`.trim();
 
 export default function registerSimpleSubagents(pi: ExtensionAPI): void {
   // Child agents must not be able to launch further subagents.
@@ -33,6 +26,10 @@ export default function registerSimpleSubagents(pi: ExtensionAPI): void {
   let savedMainTools: string[] | undefined;
   let superDelegatedTools: string[] | undefined;
 
+  const toolsWithSubagent = (toolNames: readonly string[]) => {
+    return toolNames.includes(SUBAGENT_TOOL_NAME) ? [...toolNames] : [...toolNames, SUBAGENT_TOOL_NAME];
+  };
+
   const restoreMainTools = () => {
     if (!savedMainTools) return;
     pi.setActiveTools(savedMainTools);
@@ -40,8 +37,57 @@ export default function registerSimpleSubagents(pi: ExtensionAPI): void {
     superDelegatedTools = undefined;
   };
 
+  const disableSubagentAccess = () => {
+    const currentTools = activeToolNames(pi.getActiveTools());
+    if (!currentTools.includes(SUBAGENT_TOOL_NAME)) return;
+    pi.setActiveTools(delegatedToolNames(currentTools));
+  };
+
+  const enableSubagentAccess = () => {
+    const currentTools = activeToolNames(pi.getActiveTools());
+    if (currentTools.includes(SUBAGENT_TOOL_NAME)) return;
+    pi.setActiveTools(toolsWithSubagent(currentTools));
+  };
+
+  const removeSubagentFromPromptOptions = (options: BuildSystemPromptOptions) => {
+    if (Array.isArray(options.selectedTools)) {
+      options.selectedTools = delegatedToolNames(options.selectedTools);
+    }
+    if (options.toolSnippets && typeof options.toolSnippets === "object") {
+      delete options.toolSnippets[SUBAGENT_TOOL_NAME];
+    }
+    if (Array.isArray(options.promptGuidelines)) {
+      options.promptGuidelines = options.promptGuidelines.filter(
+        (guideline: unknown) => !SUBAGENT_TOOL_PROMPT_GUIDELINES.includes(String(guideline).trim()),
+      );
+    }
+    if (Array.isArray(options.skills)) {
+      options.skills = options.skills.filter((skill) => skill.name !== SUBAGENT_SKILL_NAME);
+    }
+  };
+
+  pi.on("input", (event, ctx) => {
+    if (subagentMode !== "off") return { action: "continue" };
+    const text = event.text.trim();
+    if (text === `/skill:${SUBAGENT_SKILL_NAME}` || text.startsWith(`/skill:${SUBAGENT_SKILL_NAME} `)) {
+      ctx.ui.notify(`${SUBAGENT_SKILL_NAME} skill is disabled while /subagents is off.`, "warning");
+      return { action: "handled" };
+    }
+    return { action: "continue" };
+  });
+
+  pi.on("tool_call", (event) => {
+    if (subagentMode === "off" && event.toolName === SUBAGENT_TOOL_NAME) {
+      return { block: true, reason: `${SUBAGENT_TOOL_NAME} is disabled while /subagents is off.` };
+    }
+  });
+
   pi.on("before_agent_start", (event) => {
-    if (subagentMode === "off") return;
+    if (subagentMode === "off") {
+      disableSubagentAccess();
+      removeSubagentFromPromptOptions(event.systemPromptOptions);
+      return { systemPrompt: stripSubagentContext(event.systemPrompt) };
+    }
     const guidance = subagentMode === "super"
       ? `${SUBAGENT_FIRST_GUIDANCE}\n\n${SUBAGENT_SUPER_GUIDANCE}`
       : SUBAGENT_FIRST_GUIDANCE;
@@ -54,15 +100,18 @@ export default function registerSimpleSubagents(pi: ExtensionAPI): void {
       const action = args.trim().toLowerCase();
       if (action === "off") {
         restoreMainTools();
+        disableSubagentAccess();
         subagentMode = "off";
       } else if (action === "on") {
         restoreMainTools();
+        enableSubagentAccess();
         subagentMode = "on";
       } else if (action === "super") {
         if (subagentMode !== "super") {
           const currentTools = activeToolNames(pi.getActiveTools());
-          const delegateTools = delegatedToolNames(currentTools);
-          savedMainTools = currentTools;
+          const mainTools = toolsWithSubagent(currentTools);
+          const delegateTools = delegatedToolNames(mainTools);
+          savedMainTools = mainTools;
           superDelegatedTools = delegateTools;
           pi.setActiveTools([SUBAGENT_TOOL_NAME]);
         }
@@ -82,7 +131,9 @@ export default function registerSimpleSubagents(pi: ExtensionAPI): void {
       }
 
       ctx.ui.notify(
-        `Subagent-first workflow is ${subagentMode}.`,
+        subagentMode === "on"
+          ? "Subagent-first workflow is on. The subagent tool and /skill:subagent-first are enabled."
+          : "Subagent-first workflow is off. The subagent tool and /skill:subagent-first are disabled.",
         subagentMode === "on" ? "info" : "warning",
       );
     },
@@ -99,16 +150,26 @@ export default function registerSimpleSubagents(pi: ExtensionAPI): void {
     label: "Subagent",
     description:
       "Run one fresh synchronous subagent with delegated tools; normally inherits current active tools except subagent-spawning tools.",
-    promptSnippet: "Run a fresh isolated subagent for a single delegated task.",
-    promptGuidelines: [
-      "Use subagent when an isolated context would help with a focused subtask.",
-      "subagent is always synchronous and fresh; it does not preserve conversation history.",
-      "subagent children cannot launch nested subagents.",
-      "You may call subagent multiple times in the same turn only for independent work; avoid parallel calls that may edit overlapping files.",
-    ],
+    promptSnippet: SUBAGENT_TOOL_PROMPT_SNIPPET,
+    promptGuidelines: SUBAGENT_TOOL_PROMPT_GUIDELINES,
     parameters: SubagentParams,
 
     async execute(_toolCallId, params, signal, onUpdate, ctx): Promise<AgentToolResult<SimpleSubagentDetails>> {
+      if (subagentMode === "off") {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `${SUBAGENT_TOOL_NAME} is disabled while /subagents is off.` }],
+          details: {
+            task: params.task,
+            cwd: ctx.cwd,
+            tools: [],
+            exitCode: 1,
+            messages: 0,
+            toolCalls: [],
+          },
+        };
+      }
+
       return runSimpleSubagent(pi, params, signal, onUpdate, ctx, {
         inheritedToolsOverride: superDelegatedTools,
       });

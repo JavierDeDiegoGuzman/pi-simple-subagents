@@ -1,6 +1,7 @@
 ---
 name: subagent-first
 description: "Prefer using subagents for separable coding work: code review, reference search, repo exploration, debugging, tests, and atomic change planning."
+disable-model-invocation: true
 ---
 
 # Subagent First
