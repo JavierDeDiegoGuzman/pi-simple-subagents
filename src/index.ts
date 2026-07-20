@@ -23,7 +23,7 @@ export default function registerSimpleSubagents(pi: ExtensionAPI): void {
   // Child agents must not be able to launch further subagents.
   if (process.env[CHILD_ENV] === "1") return;
 
-  let subagentMode: "on" | "off" | "super" = "on";
+  let subagentMode: "on" | "off" | "super" = "off";
   let savedMainTools: string[] | undefined;
   let superDelegatedTools: string[] | undefined;
 
@@ -67,6 +67,54 @@ export default function registerSimpleSubagents(pi: ExtensionAPI): void {
     }
   };
 
+  const turnOff = () => {
+    restoreMainTools();
+    subagentMode = "off";
+    disableSubagentAccess();
+  };
+
+  const turnOn = () => {
+    restoreMainTools();
+    subagentMode = "on";
+    enableSubagentAccess();
+  };
+
+  // Every extension runtime starts opt-in. This runs for startup, reload,
+  // new/resumed sessions, and forks.
+  pi.on("session_start", () => {
+    turnOff();
+  });
+
+  // Keep super-mode snapshots in sync with tools owned by opt-in extensions.
+  // Otherwise an extension disabled during super mode could be re-enabled by
+  // restoreMainTools().
+  const unsubscribeOptInTools = pi.events.on("opt-in-tools:state", (data: unknown) => {
+    if (!data || typeof data !== "object") return;
+    const state = data as { active?: unknown; toolNames?: unknown };
+    if (typeof state.active !== "boolean" || !Array.isArray(state.toolNames)) return;
+    const names = state.toolNames.filter((name): name is string => typeof name === "string");
+    const nameSet = new Set(names);
+    const addNames = (tools: string[]) => [...new Set([...tools, ...names])];
+    const removeNames = (tools: string[]) => tools.filter((name) => !nameSet.has(name));
+
+    if (state.active) {
+      if (savedMainTools) savedMainTools = addNames(savedMainTools);
+      if (superDelegatedTools) superDelegatedTools = addNames(superDelegatedTools);
+      if (subagentMode === "super") pi.setActiveTools([SUBAGENT_TOOL_NAME]);
+      return;
+    }
+
+    if (savedMainTools) savedMainTools = removeNames(savedMainTools);
+    if (superDelegatedTools) superDelegatedTools = removeNames(superDelegatedTools);
+  });
+
+  // Super mode narrows the main tool set to only `subagent`. Restore the
+  // previous set and release the shared event-bus listener before teardown.
+  pi.on("session_shutdown", () => {
+    unsubscribeOptInTools();
+    turnOff();
+  });
+
   pi.on("input", (event, ctx) => {
     if (subagentMode !== "off") return { action: "continue" };
     const text = event.text.trim();
@@ -99,14 +147,13 @@ export default function registerSimpleSubagents(pi: ExtensionAPI): void {
     description: "Show or toggle subagent-first workflow guidance (on/off/super/status).",
     handler: async (args: string, ctx: any) => {
       const action = args.trim().toLowerCase();
+      if (["on", "off", "super"].includes(action) && typeof ctx.waitForIdle === "function") {
+        await ctx.waitForIdle();
+      }
       if (action === "off") {
-        restoreMainTools();
-        disableSubagentAccess();
-        subagentMode = "off";
+        turnOff();
       } else if (action === "on") {
-        restoreMainTools();
-        enableSubagentAccess();
-        subagentMode = "on";
+        turnOn();
       } else if (action === "super") {
         if (subagentMode !== "super") {
           const currentTools = activeToolNames(pi.getActiveTools());
@@ -157,19 +204,7 @@ export default function registerSimpleSubagents(pi: ExtensionAPI): void {
 
     async execute(_toolCallId, params, signal, onUpdate, ctx): Promise<AgentToolResult<SimpleSubagentDetails>> {
       if (subagentMode === "off") {
-        return {
-          isError: true,
-          content: [{ type: "text", text: `${SUBAGENT_TOOL_NAME} is disabled while /subagents is off.` }],
-          details: {
-            task: params.task,
-            cwd: ctx.cwd,
-            tools: [],
-            ...(params.model ? { model: params.model } : {}),
-            exitCode: 1,
-            messages: 0,
-            toolCalls: [],
-          },
-        };
+        throw new Error(`${SUBAGENT_TOOL_NAME} is disabled while /subagents is off.`);
       }
 
       return runSimpleSubagent(pi, params, signal, onUpdate, ctx, {

@@ -1,6 +1,6 @@
 {
   "name": "pi-simple-subagents",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Minimal Pi extension for fresh synchronous subagents",
   "license": "MIT",
   "repository": {
@@ -56,6 +56,8 @@
     }
   },
   "devDependencies": {
-    "vitest": "^3.2.4"
+    "@earendil-works/pi-tui": "^0.80.10",
+    "typebox": "^1.3.6",
+    "vitest": "^3.2.7"
   }
 }

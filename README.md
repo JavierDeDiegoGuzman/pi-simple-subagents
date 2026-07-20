@@ -32,6 +32,8 @@ Reload Pi after editing/installing:
 
 ## Behavior
 
+- starts with the `subagent` tool, subagent-first guidance, and bundled skill disabled; opt in per session with `/subagents on`
+- resets to off after `/reload`, `/new`, `/resume`, `/fork`, and `/clone`
 - always synchronous
 - always fresh (`--no-session`)
 - runs from the same working directory as the parent agent
@@ -52,10 +54,24 @@ Reload Pi after editing/installing:
 /subagets [on|off|super|status]  # typo alias
 ```
 
-- `on`: enable subagent-first guidance and ensure the `subagent` tool is active.
+- `on`: enable subagent-first guidance, allow the explicit `/skill:subagent-first` command, and activate the `subagent` tool for the current session.
 - `off`: disable subagent-first guidance, remove the `subagent` tool from active tools, and block `/skill:subagent-first`.
 - `super`: enable guidance, disable every main-agent tool except `subagent`, and let subagents use the tools that were active before entering super mode.
 - `status` or no argument: show the current mode.
+
+## Opt-in tool interoperability
+
+While `super` mode is active, the extension keeps its saved tool set synchronized with other opt-in extensions through Pi's event bus. An extension that changes its tool availability can emit:
+
+```ts
+pi.events.emit("opt-in-tools:state", {
+  source: "my-extension",
+  active: true, // false when disabling
+  toolNames: ["my_tool"],
+});
+```
+
+This prevents tools disabled during `super` mode from being restored accidentally and keeps newly enabled tools hidden from the main agent until it leaves `super` mode.
 
 ## Tool schema
 
